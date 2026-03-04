@@ -6,11 +6,11 @@ import { useRef, useState, useEffect } from 'react'
 import bgImage from './assets/BGImage.png'
 import profilePic from './assets/52323_2512856396012_1996282797_o 1.svg'
 
-// Vite glob imports for assets
-const brandGuidelineImages = import.meta.glob('./assets/brand_guideline/*.svg', { eager: true, as: 'url' })
-const brandPresentationImages = import.meta.glob('./assets/Brand_Presentations/*.svg', { eager: true, as: 'url' })
-const socialMediaImages = import.meta.glob('./assets/Social Media/*.svg', { eager: true, as: 'url' })
-const uiuxImages = import.meta.glob('./assets/UIUX Designs/*.svg', { eager: true, as: 'url' })
+// Vite glob imports for assets - Added "import: 'default'" to get the URL strings directly
+const brandGuidelineImages = import.meta.glob('./assets/brand_guideline/*.svg', { eager: true, import: 'default' })
+const brandPresentationImages = import.meta.glob('./assets/Brand_Presentations/*.svg', { eager: true, import: 'default' })
+const socialMediaImages = import.meta.glob('./assets/Social Media/*.svg', { eager: true, import: 'default' })
+const uiuxImages = import.meta.glob('./assets/UIUX Designs/*.svg', { eager: true, import: 'default' })
 
 const brandGuidelineAssets = Object.values(brandGuidelineImages)
 const brandPresentationAssets = Object.values(brandPresentationImages)
@@ -248,7 +248,7 @@ function App() {
             onClick={() => setDarkMode(!darkMode)}
             className={`p-2 rounded-full transition-colors ${scrolled ? "bg-black/5 dark:bg-white/10" : "bg-white/10"}`}
           >
-            {darkMode ? <Sun size={18} className="text-white" /> : <Moon size={18} className={scrolled ? "text-[#1E1E1E]" : "text-white"} />}
+            {darkMode ? <Sun size={18} className="text-white" /> : <Moon size={18} className={scrolled ? "text-[#1E1E]" : "text-white"} />}
           </button>
         </div>
       </motion.nav>
@@ -511,7 +511,7 @@ function App() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <Sparkles className="mx-auto mb-8 text-black opacity-50" size={48} />
+              <offer className="mx-auto mb-8 text-black opacity-50" size={48} />
               <h2 className="text-5xl md:text-7xl font-bold text-black mb-8">Let's create something amazing</h2>
               <p className="text-xl text-black/80 mb-12 max-w-2xl mx-auto">
                 Ready to bring your ideas to life? Let's collaborate and make something extraordinary together.
