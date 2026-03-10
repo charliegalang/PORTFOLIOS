@@ -1,7 +1,7 @@
-const CLOUD_NAME = 'denb626rh';
-const API_KEY = '889231971728619';
-const API_SECRET = '9xI00Nq4YChwHEr_6I4drfZokBQ'; // Private key for signing
-const UPLOAD_PRESET = 'ml_default';
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
+const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Helper to generate SHA-1 signature for deletion
 const generateSignature = async (public_id, timestamp) => {
