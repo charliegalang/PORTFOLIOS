@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Merriweather:wght@300;400;700&family=Roboto+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Root level theme variables - Guaranteed to work */
+/* Root level theme variables */
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #F5F5F5;
@@ -28,6 +30,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.5s ease, color 0.5s ease;
+  font-family: 'Inter', sans-serif;
 }
 
 /* Custom scrollbar */
@@ -49,10 +52,32 @@ body {
   background: var(--gold-primary);
 }
 
-/* Utility classes for the App to use */
+/* Utility classes */
 .bg-theme-primary { background-color: var(--bg-primary) !important; }
 .bg-theme-secondary { background-color: var(--bg-secondary) !important; }
 .text-theme-primary { color: var(--text-primary) !important; }
 .text-theme-secondary { color: var(--text-secondary) !important; }
 .border-theme { border-color: rgba(128, 128, 128, 0.1); }
 html.dark .border-theme { border-color: rgba(255, 255, 255, 0.1); }
+
+/* Rich Text Editor Overrides */
+[contenteditable] {
+  outline: none;
+}
+
+[contenteditable] b, [contenteditable] strong {
+  font-weight: bold;
+}
+
+[contenteditable] i, [contenteditable] em {
+  font-style: italic;
+}
+
+[contenteditable] u {
+  text-decoration: underline;
+}
+
+
+/* 
+
+CHARLIE  */

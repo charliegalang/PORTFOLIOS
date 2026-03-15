@@ -2,154 +2,959 @@ import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'fra
 import {
   Plus, Moon, Sun, X, ChevronDown, Sparkles, Eye, ArrowRight,
   ChevronLeft, ChevronRight, Menu, Upload, Trash2, Copy, Check,
-  Briefcase, Edit2, Save, Trash, ChevronUp, Bold, Italic, Underline, Type, MoveVertical
+  Briefcase, Edit2, Save, Trash, ChevronUp, Bold, Italic, Underline,
+  Type, MoveVertical, AlignLeft, AlignCenter, AlignRight, List, Minus, Plus as PlusIcon,
+  Palette, Search, ChevronDown as ChevronDownIcon
 } from 'lucide-react'
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { uploadToCloudinary, fetchImagesByTag, deleteFromCloudinary } from './CloudinaryService'
 
-// Rich Text Editor Component
-const RichTextEditor = ({ value, onSave, className = "", isEditMode }) => {
+// Helper function to strip HTML for display
+const stripHtml = (html) => {  
+  if (!html) return '';
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  return temp.textContent || temp.innerText || '';
+}
+
+// EXPANDED Color palette with 150+ colors
+const colors = [
+  // Basic Colors
+  { name: 'Black', value: '#000000' },
+  { name: 'White', value: '#FFFFFF' },
+  { name: 'Red', value: '#FF0000' },
+  { name: 'Lime', value: '#00FF00' },
+  { name: 'Blue', value: '#0000FF' },
+  { name: 'Yellow', value: '#FFFF00' },
+  { name: 'Cyan', value: '#00FFFF' },
+  { name: 'Magenta', value: '#FF00FF' },
+  { name: 'Silver', value: '#C0C0C0' },
+  { name: 'Gray', value: '#808080' },
+  { name: 'Maroon', value: '#800000' },
+  { name: 'Olive', value: '#808000' },
+  { name: 'Green', value: '#008000' },
+  { name: 'Purple', value: '#800080' },
+  { name: 'Teal', value: '#008080' },
+  { name: 'Navy', value: '#000080' },
+  
+  // Extended Colors
+  { name: 'Indian Red', value: '#CD5C5C' },
+  { name: 'Light Coral', value: '#F08080' },
+  { name: 'Salmon', value: '#FA8072' },
+  { name: 'Dark Salmon', value: '#E9967A' },
+  { name: 'Light Salmon', value: '#FFA07A' },
+  { name: 'Crimson', value: '#DC143C' },
+  { name: 'Fire Brick', value: '#B22222' },
+  { name: 'Dark Red', value: '#8B0000' },
+  
+  { name: 'Pink', value: '#FFC0CB' },
+  { name: 'Light Pink', value: '#FFB6C1' },
+  { name: 'Hot Pink', value: '#FF69B4' },
+  { name: 'Deep Pink', value: '#FF1493' },
+  { name: 'Pale Violet Red', value: '#DB7093' },
+  { name: 'Medium Violet Red', value: '#C71585' },
+  
+  { name: 'Light Salmon', value: '#FFA07A' },
+  { name: 'Coral', value: '#FF7F50' },
+  { name: 'Tomato', value: '#FF6347' },
+  { name: 'Orange Red', value: '#FF4500' },
+  { name: 'Dark Orange', value: '#FF8C00' },
+  { name: 'Orange', value: '#FFA500' },
+  
+  { name: 'Gold', value: '#FFD700' },
+  { name: 'Yellow', value: '#FFFF00' },
+  { name: 'Light Yellow', value: '#FFFFE0' },
+  { name: 'Lemon Chiffon', value: '#FFFACD' },
+  { name: 'Light Goldenrod', value: '#FAFAD2' },
+  { name: 'Papaya Whip', value: '#FFEFD5' },
+  { name: 'Moccasin', value: '#FFE4B5' },
+  { name: 'Peach Puff', value: '#FFDAB9' },
+  { name: 'Pale Goldenrod', value: '#EEE8AA' },
+  { name: 'Khaki', value: '#F0E68C' },
+  { name: 'Dark Khaki', value: '#BDB76B' },
+  
+  { name: 'Lavender', value: '#E6E6FA' },
+  { name: 'Thistle', value: '#D8BFD8' },
+  { name: 'Plum', value: '#DDA0DD' },
+  { name: 'Violet', value: '#EE82EE' },
+  { name: 'Orchid', value: '#DA70D6' },
+  { name: 'Fuchsia', value: '#FF00FF' },
+  { name: 'Magenta', value: '#FF00FF' },
+  { name: 'Medium Orchid', value: '#BA55D3' },
+  { name: 'Medium Purple', value: '#9370DB' },
+  { name: 'Blue Violet', value: '#8A2BE2' },
+  { name: 'Dark Violet', value: '#9400D3' },
+  { name: 'Dark Orchid', value: '#9932CC' },
+  { name: 'Dark Magenta', value: '#8B008B' },
+  { name: 'Purple', value: '#800080' },
+  { name: 'Indigo', value: '#4B0082' },
+  { name: 'Slate Blue', value: '#6A5ACD' },
+  { name: 'Dark Slate Blue', value: '#483D8B' },
+  
+  { name: 'Green Yellow', value: '#ADFF2F' },
+  { name: 'Chartreuse', value: '#7FFF00' },
+  { name: 'Lawn Green', value: '#7CFC00' },
+  { name: 'Lime', value: '#00FF00' },
+  { name: 'Lime Green', value: '#32CD32' },
+  { name: 'Pale Green', value: '#98FB98' },
+  { name: 'Light Green', value: '#90EE90' },
+  { name: 'Medium Spring Green', value: '#00FA9A' },
+  { name: 'Spring Green', value: '#00FF7F' },
+  { name: 'Medium Sea Green', value: '#3CB371' },
+  { name: 'Sea Green', value: '#2E8B57' },
+  { name: 'Forest Green', value: '#228B22' },
+  { name: 'Green', value: '#008000' },
+  { name: 'Dark Green', value: '#006400' },
+  { name: 'Yellow Green', value: '#9ACD32' },
+  { name: 'Olive Drab', value: '#6B8E23' },
+  { name: 'Olive', value: '#808000' },
+  { name: 'Dark Olive Green', value: '#556B2F' },
+  { name: 'Medium Aquamarine', value: '#66CDAA' },
+  { name: 'Dark Sea Green', value: '#8FBC8F' },
+  { name: 'Light Sea Green', value: '#20B2AA' },
+  { name: 'Dark Cyan', value: '#008B8B' },
+  { name: 'Teal', value: '#008080' },
+  
+  { name: 'Aqua', value: '#00FFFF' },
+  { name: 'Cyan', value: '#00FFFF' },
+  { name: 'Light Cyan', value: '#E0FFFF' },
+  { name: 'Pale Turquoise', value: '#AFEEEE' },
+  { name: 'Aquamarine', value: '#7FFFD4' },
+  { name: 'Turquoise', value: '#40E0D0' },
+  { name: 'Medium Turquoise', value: '#48D1CC' },
+  { name: 'Dark Turquoise', value: '#00CED1' },
+  { name: 'Cadet Blue', value: '#5F9EA0' },
+  { name: 'Steel Blue', value: '#4682B4' },
+  { name: 'Light Steel Blue', value: '#B0C4DE' },
+  { name: 'Powder Blue', value: '#B0E0E6' },
+  { name: 'Light Blue', value: '#ADD8E6' },
+  { name: 'Sky Blue', value: '#87CEEB' },
+  { name: 'Light Sky Blue', value: '#87CEFA' },
+  { name: 'Deep Sky Blue', value: '#00BFFF' },
+  { name: 'Dodger Blue', value: '#1E90FF' },
+  { name: 'Cornflower Blue', value: '#6495ED' },
+  { name: 'Medium Slate Blue', value: '#7B68EE' },
+  { name: 'Royal Blue', value: '#4169E1' },
+  { name: 'Blue', value: '#0000FF' },
+  { name: 'Medium Blue', value: '#0000CD' },
+  { name: 'Dark Blue', value: '#00008B' },
+  { name: 'Navy', value: '#000080' },
+  { name: 'Midnight Blue', value: '#191970' },
+  
+  { name: 'Cornsilk', value: '#FFF8DC' },
+  { name: 'Blanched Almond', value: '#FFEBCD' },
+  { name: 'Bisque', value: '#FFE4C4' },
+  { name: 'Navajo White', value: '#FFDEAD' },
+  { name: 'Wheat', value: '#F5DEB3' },
+  { name: 'Burly Wood', value: '#DEB887' },
+  { name: 'Tan', value: '#D2B48C' },
+  { name: 'Rosy Brown', value: '#BC8F8F' },
+  { name: 'Sandy Brown', value: '#F4A460' },
+  { name: 'Goldenrod', value: '#DAA520' },
+  { name: 'Dark Goldenrod', value: '#B8860B' },
+  { name: 'Peru', value: '#CD853F' },
+  { name: 'Chocolate', value: '#D2691E' },
+  { name: 'Saddle Brown', value: '#8B4513' },
+  { name: 'Sienna', value: '#A0522D' },
+  { name: 'Brown', value: '#A52A2A' },
+  { name: 'Maroon', value: '#800000' },
+  
+  { name: 'White', value: '#FFFFFF' },
+  { name: 'Snow', value: '#FFFAFA' },
+  { name: 'Honeydew', value: '#F0FFF0' },
+  { name: 'Mint Cream', value: '#F5FFFA' },
+  { name: 'Azure', value: '#F0FFFF' },
+  { name: 'Alice Blue', value: '#F0F8FF' },
+  { name: 'Ghost White', value: '#F8F8FF' },
+  { name: 'White Smoke', value: '#F5F5F5' },
+  { name: 'Seashell', value: '#FFF5EE' },
+  { name: 'Beige', value: '#F5F5DC' },
+  { name: 'Old Lace', value: '#FDF5E6' },
+  { name: 'Floral White', value: '#FFFAF0' },
+  { name: 'Ivory', value: '#FFFFF0' },
+  { name: 'Antique White', value: '#FAEBD7' },
+  { name: 'Linen', value: '#FAF0E6' },
+  { name: 'Lavender Blush', value: '#FFF0F5' },
+  { name: 'Misty Rose', value: '#FFE4E1' },
+  
+  { name: 'Gainsboro', value: '#DCDCDC' },
+  { name: 'Light Gray', value: '#D3D3D3' },
+  { name: 'Silver', value: '#C0C0C0' },
+  { name: 'Dark Gray', value: '#A9A9A9' },
+  { name: 'Gray', value: '#808080' },
+  { name: 'Dim Gray', value: '#696969' },
+  { name: 'Light Slate Gray', value: '#778899' },
+  { name: 'Slate Gray', value: '#708090' },
+  { name: 'Dark Slate Gray', value: '#2F4F4F' },
+  { name: 'Black', value: '#000000' }
+];
+
+// Rich Text Editor Component - TRUE MS WORD EXPERIENCE for EVERY element
+const RichTextEditor = ({ value, onSave, className = "", isEditMode, placeholder = "Click to edit..." }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
-  const [isBold, setIsBold] = useState(false)
-  const [isItalic, setIsItalic] = useState(false)
-  const [isUnderline, setIsUnderline] = useState(false)
-  const [fontSize, setFontSize] = useState('16')
-  const textareaRef = useRef(null)
+  const editorRef = useRef(null)
+  const modalRef = useRef(null)
+  const [currentFontSize, setCurrentFontSize] = useState('16')
+  const [showFontPicker, setShowFontPicker] = useState(false)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [fontSearchTerm, setFontSearchTerm] = useState('')
+  const [colorSearchTerm, setColorSearchTerm] = useState('')
+  const [customColor, setCustomColor] = useState('#000000')
+  const fontSearchTimeout = useRef(null)
+  const colorSearchTimeout = useRef(null)
+
+  // Comprehensive font list
+  const allFonts = [
+    // System Fonts
+    'Arial', 'Arial Black', 'Bahnschrift', 'Calibri', 'Cambria', 'Cambria Math',
+    'Candara', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier New',
+    'Ebrima', 'Franklin Gothic Medium', 'Gabriola', 'Gadugi', 'Georgia', 'Gill Sans MT',
+    'Helvetica', 'Helvetica Neue', 'Impact', 'Ink Free', 'Javanese Text', 'Leelawadee UI',
+    'Lucida Console', 'Lucida Sans', 'Lucida Sans Unicode', 'Malgun Gothic', 'Marlett',
+    'Microsoft Himalaya', 'Microsoft JhengHei', 'Microsoft New Tai Lue', 'Microsoft PhagsPa',
+    'Microsoft Sans Serif', 'Microsoft Tai Le', 'Microsoft YaHei', 'Microsoft Yi Baiti',
+    'MingLiU', 'MingLiU-ExtB', 'Mongolian Baiti', 'MS Gothic', 'MS PGothic', 'MS UI Gothic',
+    'MV Boli', 'Myanmar Text', 'Nirmala UI', 'Palatino Linotype', 'Segoe MDL2 Assets',
+    'Segoe Print', 'Segoe Script', 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Historic',
+    'Segoe UI Symbol', 'SimHei', 'Simplified Arabic', 'Simplified Arabic Fixed',
+    'SimSun', 'SimSun-ExtB', 'Sitka Banner', 'Sitka Display', 'Sitka Heading',
+    'Sitka Small', 'Sitka Subheading', 'Sitka Text', 'Sylfaen', 'Symbol', 'Tahoma',
+    'Times New Roman', 'Trebuchet MS', 'Verdana', 'Webdings', 'Wingdings', 'Wingdings 2',
+    'Wingdings 3', 'Yu Gothic',
+    
+    // Google Fonts - Popular
+    'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway', 'Oswald',
+    'Ubuntu', 'Nunito', 'Quicksand', 'Source Sans Pro', 'Merriweather', 'Playfair Display',
+    'Dancing Script', 'Pacifico', 'Shadows Into Light', 'Indie Flower', 'Amatic SC',
+    'Cabin', 'Muli', 'Maven Pro', 'Abel', 'Abril Fatface', 'Acme', 'Akronim',
+    'Aladin', 'Aldrich', 'Alegreya', 'Alegreya Sans', 'Alex Brush', 'Alfa Slab One',
+    'Alice', 'Alike', 'Alike Angular', 'Allan', 'Allerta', 'Allerta Stencil',
+    'Allura', 'Almendra', 'Almendra Display', 'Almendra SC', 'Amarante', 'Amaranth',
+    'Amatic SC', 'Amethysta', 'Amiko', 'Amiri', 'Amita', 'Anaheim', 'Andada',
+    'Andika', 'Angkor', 'Annie Use Your Telescope', 'Anonymous Pro', 'Antic',
+    'Antic Didone', 'Antic Slab', 'Anton', 'Arapey', 'Arbutus', 'Arbutus Slab',
+    'Architects Daughter', 'Archivo', 'Archivo Black', 'Archivo Narrow', 'Aref Ruqaa',
+    'Arima Madurai', 'Arimo', 'Arizonia', 'Armata', 'Arsenal', 'Artifika', 'Arvo',
+    'Arya', 'Asap', 'Asap Condensed', 'Asar', 'Asset', 'Assistant', 'Astloch',
+    'Asul', 'Athiti', 'Atma', 'Atomic Age', 'Aubrey', 'Audiowide', 'Autour One',
+    'Average', 'Average Sans', 'Averia Gruesa Libre', 'Averia Libre', 'Averia Sans Libre',
+    'Averia Serif Libre', 'B612', 'B612 Mono', 'Bad Script', 'Bahiana', 'Bahianita',
+    'Bai Jamjuree', 'Baloo', 'Baloo Bhai', 'Baloo Bhaijaan', 'Baloo Bhaina',
+    'Baloo Chettan', 'Baloo Da', 'Baloo Paaji', 'Baloo Tamma', 'Baloo Tammudu',
+    'Baloo Thambi', 'Balsamiq Sans', 'Balthazar', 'Bangers', 'Barlow', 'Barlow Condensed',
+    'Barlow Semi Condensed', 'Barriecito', 'Barrio', 'Basic', 'Battambang', 'Baumans',
+    'Bayon', 'Be Vietnam', 'Bebas Neue', 'Belgrano', 'Bellefair', 'Belleza',
+    'BenchNine', 'Bentham', 'Berkshire Swash', 'Beth Ellen', 'Bevan', 'Big Shoulders Display',
+    'Big Shoulders Text', 'Bigelow Rules', 'Bigshot One', 'Bilbo', 'Bilbo Swash Caps',
+    'BioRhyme', 'BioRhyme Expanded', 'Biryani', 'Bitter', 'Black And White Picture',
+    'Black Han Sans', 'Black Ops One', 'Bokor', 'Bonbon', 'Boogaloo', 'Bowlby One',
+    'Bowlby One SC', 'Brawler', 'Bree Serif', 'Bubblegum Sans', 'Bubbler One',
+    'Buda', 'Buenard', 'Bungee', 'Bungee Hairline', 'Bungee Inline', 'Bungee Outline',
+    'Bungee Shade', 'Butcherman', 'Butterfly Kids', 'Cabin', 'Cabin Condensed',
+    'Cabin Sketch', 'Caesar Dressing', 'Cagliostro', 'Cairo', 'Caladea', 'Calistoga',
+    'Calligraffitti', 'Cambay', 'Cambo', 'Candal', 'Cantarell', 'Cantata One',
+    'Cantora One', 'Capriola', 'Cardo', 'Carme', 'Carrois Gothic', 'Carrois Gothic SC',
+    'Carter One', 'Catamaran', 'Caudex', 'Caveat', 'Caveat Brush', 'Cedarville Cursive',
+    'Ceviche One', 'Chakra Petch', 'Changa', 'Changa One', 'Chango', 'Charm',
+    'Charmonman', 'Chathura', 'Chau Philomene One', 'Chela One', 'Chelsea Market',
+    'Chenla', 'Cherry Cream Soda', 'Cherry Swash', 'Chewy', 'Chicle', 'Chivo',
+    'Chonburi', 'Cinzel', 'Cinzel Decorative', 'Clicker Script', 'Coda', 'Coda Caption',
+    'Codystar', 'Coiny', 'Combo', 'Comfortaa', 'Comic Neue', 'Coming Soon',
+    'Concert One', 'Condiment', 'Content', 'Contrail One', 'Convergence', 'Cookie',
+    'Copse', 'Corben', 'Cormorant', 'Cormorant Garamond', 'Cormorant Infant',
+    'Cormorant SC', 'Cormorant Unicase', 'Cormorant Upright', 'Courgette',
+    'Cousine', 'Coustard', 'Covered By Your Grace', 'Crafty Girls', 'Creepster',
+    'Crete Round', 'Crimson Text', 'Croissant One', 'Crushed', 'Cuprum', 'Cute Font',
+    'Cutive', 'Cutive Mono', 'DM Sans', 'DM Serif Display', 'DM Serif Text',
+    'Damion', 'Dancing Script', 'Dangrek', 'Darker Grotesque', 'David Libre',
+    'Dawning of a New Day', 'Days One', 'Dekko', 'Delius', 'Delius Swash Caps',
+    'Delius Unicase', 'Della Respira', 'Denk One', 'Devonshire', 'Dhurjati',
+    'Didact Gothic', 'Digory Doodles', 'Diphylleia', 'Diplomata', 'Diplomata SC',
+    'Do Hyeon', 'Dokdo', 'Domine', 'Donegal One', 'Doppio One', 'Dorsa',
+    'Dosis', 'Dr Sugiyama', 'Droid Sans', 'Droid Sans Mono', 'Droid Serif',
+    'Duru Sans', 'Dynalight', 'EB Garamond', 'Eagle Lake', 'East Sea Dokdo',
+    'Eater', 'Economica', 'Eczar', 'El Messiri', 'Electrolize', 'Elsie',
+    'Elsie Swash Caps', 'Emblema One', 'Emilys Candy', 'Encode Sans',
+    'Encode Sans Condensed', 'Encode Sans Expanded', 'Encode Sans Semi Condensed',
+    'Encode Sans Semi Expanded', 'Engagement', 'Englebert', 'Enriqueta',
+    'Erica One', 'Esteban', 'Euphoria Script', 'Ewert', 'Exo', 'Exo 2',
+    'Expletus Sans', 'Fahkwang', 'Fanwood Text', 'Farsan', 'Fascinate',
+    'Fascinate Inline', 'Faster One', 'Fasthand', 'Fauna One', 'Faustina',
+    'Federant', 'Federo', 'Felipa', 'Fenix', 'Finger Paint', 'Fira Mono',
+    'Fira Sans', 'Fira Sans Condensed', 'Fira Sans Extra Condensed', 'Fjalla One',
+    'Fjord One', 'Flamenco', 'Flavors', 'Fondamento', 'Fontdiner Swanky',
+    'Forum', 'Francois One', 'Frank Ruhl Libre', 'Freckle Face', 'Fredericka the Great',
+    'Fredoka One', 'Freehand', 'Fresca', 'Frijole', 'Fruktur', 'Fugaz One',
+    'GFS Didot', 'GFS Neohellenic', 'Gabriela', 'Gaegu', 'Gafata', 'Galada',
+    'Galdeano', 'Galindo', 'Gamja Flower', 'Gayathri', 'Gelasio', 'Gentium Basic',
+    'Gentium Book Basic', 'Geo', 'Geostar', 'Geostar Fill', 'Germania One',
+    'Gidugu', 'Gilda Display', 'Girassol', 'Give You Glory', 'Glass Antiqua',
+    'Glegoo', 'Gloria Hallelujah', 'Gochi Hand', 'Gorditas', 'Gothic A1',
+    'Goudy Bookletter 1911', 'Graduate', 'Grand Hotel', 'Gravitas One',
+    'Great Vibes', 'Griffy', 'Gruppo', 'Gudea', 'Gugi', 'Gurajada', 'Habibi',
+    'Halant', 'Hammersmith One', 'Hanalei', 'Hanalei Fill', 'Handlee',
+    'Hanuman', 'Happy Monkey', 'Harmattan', 'Headland One', 'Heebo',
+    'Henny Penny', 'Herr Von Muellerhoff', 'Hi Melody', 'Hind', 'Hind Guntur',
+    'Hind Madurai', 'Hind Siliguri', 'Hind Vadodara', 'Holtwood One SC',
+    'Homemade Apple', 'Homenaje', 'IBM Plex Mono', 'IBM Plex Sans',
+    'IBM Plex Sans Condensed', 'IBM Plex Serif', 'IM Fell DW Pica',
+    'IM Fell DW Pica SC', 'IM Fell Double Pica', 'IM Fell Double Pica SC',
+    'IM Fell English', 'IM Fell English SC', 'IM Fell French Canon',
+    'IM Fell French Canon SC', 'IM Fell Great Primer', 'IM Fell Great Primer SC',
+    'Iceberg', 'Iceland', 'Imprima', 'Inconsolata', 'Inder', 'Indie Flower',
+    'Inika', 'Inknut Antiqua', 'Inria Sans', 'Inria Serif', 'Inter',
+    'Irish Grover', 'Istok Web', 'Italiana', 'Italianno', 'Itim',
+    'Jacques Francois', 'Jacques Francois Shadow', 'Jaldi', 'Jim Nightshade',
+    'Jockey One', 'Jolly Lodger', 'Jomhuria', 'Jomolhari', 'Josefin Sans',
+    'Josefin Slab', 'Jost', 'Joti One', 'Jua', 'Judson', 'Julee', 'Julius Sans One',
+    'Junge', 'Jura', 'Just Another Hand', 'Just Me Again Down Here',
+    'K2D', 'Kadwa', 'Kalam', 'Kameron', 'Kanit', 'Kantumruy', 'Karla',
+    'Karma', 'Katibeh', 'Kaushan Script', 'Kavivanar', 'Kavoon', 'Kdam Thmor',
+    'Keania One', 'Kelly Slab', 'Kenia', 'Khand', 'Khmer', 'Khula', 'Kirang Haerang',
+    'Kite One', 'Knewave', 'KoHo', 'Kodchasan', 'Kosugi', 'Kosugi Maru',
+    'Kotta One', 'Koulen', 'Kranky', 'Kreon', 'Kristi', 'Krona One',
+    'Krub', 'Kumar One', 'Kumar One Outline', 'Kurale', 'La Belle Aurore',
+    'Lacquer', 'Laila', 'Lakki Reddy', 'Lalezar', 'Lancelot', 'Lateef',
+    'Lato', 'League Script', 'Leckerli One', 'Ledger', 'Lekton', 'Lemon',
+    'Lemonada', 'Lexend Deca', 'Lexend Exa', 'Lexend Giga', 'Lexend Mega',
+    'Lexend Peta', 'Lexend Tera', 'Lexend Zetta', 'Libre Barcode 128',
+    'Libre Barcode 128 Text', 'Libre Barcode 39', 'Libre Barcode 39 Extended',
+    'Libre Barcode 39 Extended Text', 'Libre Barcode 39 Text', 'Libre Baskerville',
+    'Libre Franklin', 'Life Savers', 'Lilita One', 'Lily Script One',
+    'Limelight', 'Linden Hill', 'Literata', 'Liu Jian Mao Cao', 'Livvic',
+    'Lobster', 'Lobster Two', 'Londrina Outline', 'Londrina Shadow',
+    'Londrina Sketch', 'Londrina Solid', 'Long Cang', 'Lora', 'Love Ya Like A Sister',
+    'Loved by the King', 'Lovers Quarrel', 'Luckiest Guy', 'Lusitana',
+    'Lustria', 'M PLUS 1p', 'M PLUS Rounded 1c', 'Ma Shan Zheng', 'Macondo',
+    'Macondo Swash Caps', 'Mada', 'Magra', 'Maiden Orange', 'Maitree',
+    'Major Mono Display', 'Mako', 'Mali', 'Mallanna', 'Mandali', 'Manjari',
+    'Mansalva', 'Manuale', 'Marcellus', 'Marcellus SC', 'Marck Script',
+    'Margarine', 'Markazi Text', 'Marko One', 'Marmelad', 'Martel',
+    'Martel Sans', 'Marvel', 'Mate', 'Mate SC', 'Maven Pro', 'McLaren',
+    'Meddon', 'MedievalSharp', 'Medula One', 'Meera Inimai', 'Megrim',
+    'Meie Script', 'Merienda', 'Merienda One', 'Merriweather', 'Merriweather Sans',
+    'Metal', 'Metal Mania', 'Metamorphous', 'Metrophobic', 'Michroma',
+    'Milonga', 'Miltonian', 'Miltonian Tattoo', 'Mina', 'Miniver',
+    'Miriam Libre', 'Mirza', 'Miss Fajardose', 'Mitr', 'Modak',
+    'Modern Antiqua', 'Mogra', 'Molengo', 'Molle', 'Monda', 'Monofett',
+    'Monoton', 'Monsieur La Doulaise', 'Montaga', 'Montez', 'Montserrat',
+    'Montserrat Alternates', 'Montserrat Subrayada', 'Moul', 'Moulpali',
+    'Mountains of Christmas', 'Mouse Memoirs', 'Mr Bedfort', 'Mr Dafoe',
+    'Mr De Haviland', 'Mrs Saint Delafield', 'Mrs Sheppards', 'Mukta',
+    'Mukta Mahee', 'Mukta Malar', 'Mukta Vaani', 'Muli', 'Mystery Quest',
+    'NTR', 'Nanum Brush Script', 'Nanum Gothic', 'Nanum Gothic Coding',
+    'Nanum Myeongjo', 'Nanum Pen Script', 'Neucha', 'Neuton', 'New Rocker',
+    'News Cycle', 'Niconne', 'Niramit', 'Nixie One', 'Nobile', 'Nokora',
+    'Norican', 'Nosifer', 'Notable', 'Nothing You Could Do', 'Noticia Text',
+    'Noto Sans', 'Noto Sans HK', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC',
+    'Noto Sans TC', 'Noto Serif', 'Noto Serif JP', 'Noto Serif KR', 'Noto Serif SC',
+    'Noto Serif TC', 'Nova Cut', 'Nova Flat', 'Nova Mono', 'Nova Oval',
+    'Nova Round', 'Nova Script', 'Nova Slim', 'Nova Square', 'Numans',
+    'Nunito', 'Nunito Sans', 'Odor Mean Chey', 'Offside', 'Old Standard TT',
+    'Oldenburg', 'Oleo Script', 'Oleo Script Swash Caps', 'Open Sans',
+    'Open Sans Condensed', 'Oranienbaum', 'Orbitron', 'Oregano', 'Orienta',
+    'Original Surfer', 'Oswald', 'Over the Rainbow', 'Overlock', 'Overlock SC',
+    'Overpass', 'Overpass Mono', 'Ovo', 'Oxanium', 'Oxygen', 'Oxygen Mono',
+    'PT Mono', 'PT Sans', 'PT Sans Caption', 'PT Sans Narrow', 'PT Serif',
+    'PT Serif Caption', 'Pacifico', 'Padauk', 'Palanquin', 'Palanquin Dark',
+    'Pangolin', 'Paprika', 'Parisienne', 'Passero One', 'Passion One',
+    'Pathway Gothic One', 'Patrick Hand', 'Patrick Hand SC', 'Pattaya',
+    'Patua One', 'Pavanam', 'Paytone One', 'Peddana', 'Peralta',
+    'Permanent Marker', 'Petit Formal Script', 'Petrona', 'Philosopher',
+    'Piedra', 'Pinyon Script', 'Pirata One', 'Plaster', 'Play', 'Playball',
+    'Playfair Display', 'Playfair Display SC', 'Podkova', 'Poiret One',
+    'Poller One', 'Poly', 'Pompiere', 'Pontano Sans', 'Poor Story',
+    'Poppins', 'Port Lligat Sans', 'Port Lligat Slab', 'Pragati Narrow',
+    'Prata', 'Preahvihear', 'Press Start 2P', 'Pridi', 'Princess Sofia',
+    'Prociono', 'Prompt', 'Prosto One', 'Proza Libre', 'Public Sans',
+    'Puritan', 'Purple Purse', 'Quando', 'Quantico', 'Quattrocento',
+    'Quattrocento Sans', 'Questrial', 'Quicksand', 'Quintessential',
+    'Qwigley', 'Racing Sans One', 'Radley', 'Rajdhani', 'Rakkas',
+    'Raleway', 'Raleway Dots', 'Ramabhadra', 'Ramaraja', 'Rambla',
+    'Rammetto One', 'Ranchers', 'Rancho', 'Ranga', 'Rasa', 'Rationale',
+    'Ravi Prakash', 'Red Hat Display', 'Red Hat Text', 'Redressed',
+    'Reem Kufi', 'Reenie Beanie', 'Revalia', 'Rhodium Libre', 'Ribeye',
+    'Ribeye Marrow', 'Righteous', 'Risque', 'Roboto', 'Roboto Condensed',
+    'Roboto Mono', 'Roboto Slab', 'Rochester', 'Rock Salt', 'Rokkitt',
+    'Romanesco', 'Ropa Sans', 'Rosario', 'Rosarivo', 'Rouge Script',
+    'Rozha One', 'Rubik', 'Rubik Mono One', 'Ruda', 'Rufina', 'Ruge Boogie',
+    'Ruluko', 'Rum Raisin', 'Ruslan Display', 'Russo One', 'Ruthie',
+    'Rye', 'Sacramento', 'Sahitya', 'Sail', 'Saira', 'Saira Condensed',
+    'Saira Extra Condensed', 'Saira Semi Condensed', 'Saira Stencil One',
+    'Salsa', 'Sanchez', 'Sancreek', 'Sansita', 'Sansita One', 'Sarabun',
+    'Sarala', 'Sarina', 'Sarpanch', 'Satisfy', 'Sawarabi Gothic',
+    'Sawarabi Mincho', 'Scada', 'Scheherazade', 'Schoolbell', 'Scope One',
+    'Seaweed Script', 'Secular One', 'Sedgwick Ave', 'Sedgwick Ave Display',
+    'Sen', 'Sevillana', 'Seymour One', 'Shadows Into Light', 'Shadows Into Light Two',
+    'Shanti', 'Share', 'Share Tech', 'Share Tech Mono', 'Shojumaru',
+    'Short Stack', 'Shrikhand', 'Siemreap', 'Sigmar One', 'Signika',
+    'Signika Negative', 'Simonetta', 'Sintony', 'Sirin Stencil',
+    'Six Caps', 'Skranji', 'Slabo 13px', 'Slabo 27px', 'Slackey',
+    'Smokum', 'Smythe', 'Sniglet', 'Snippet', 'Snowburst One',
+    'Sofadi One', 'Sofia', 'Solway', 'Song Myung', 'Sonsie One',
+    'Sorts Mill Goudy', 'Source Code Pro', 'Source Sans Pro',
+    'Source Serif Pro', 'Space Mono', 'Special Elite', 'Spectral',
+    'Spectral SC', 'Spicy Rice', 'Spinnaker', 'Spirax', 'Squada One',
+    'Sree Krushnadevaraya', 'Sriracha', 'Srisakdi', 'Staatliches',
+    'Stalemate', 'Stalinist One', 'Stardos Stencil', 'Stint Ultra Condensed',
+    'Stint Ultra Expanded', 'Stoke', 'Strait', 'Stylish', 'Sue Ellen Francisco',
+    'Suez One', 'Sumana', 'Sunflower', 'Sunshiney', 'Supermercado One',
+    'Sura', 'Suranna', 'Suravaram', 'Suwannaphum', 'Swanky and Moo Moo',
+    'Syncopate', 'Tajawal', 'Tangerine', 'Taprom', 'Tauri', 'Taviraj',
+    'Teko', 'Telex', 'Tenali Ramakrishna', 'Tenor Sans', 'Text Me One',
+    'Thasadith', 'The Girl Next Door', 'Tienne', 'Tillana', 'Timmana',
+    'Tinos', 'Titan One', 'Titillium Web', 'Trade Winds', 'Trirong',
+    'Trocchi', 'Trochut', 'Trykker', 'Tulpen One', 'Turret Road',
+    'Ubuntu', 'Ubuntu Condensed', 'Ubuntu Mono', 'Ultra', 'Uncial Antiqua',
+    'Underdog', 'Unica One', 'UnifrakturCook', 'UnifrakturMaguntia',
+    'Unkempt', 'Unlock', 'Unna', 'VT323', 'Vampiro One', 'Varela',
+    'Varela Round', 'Vast Shadow', 'Vesper Libre', 'Viaoda Libre',
+    'Vibes', 'Vibur', 'Vidaloka', 'Viga', 'Voces', 'Volkhov', 'Vollkorn',
+    'Vollkorn SC', 'Voltaire', 'Waiting for the Sunrise', 'Wallpoet',
+    'Walter Turncoat', 'Warnes', 'Wellfleet', 'Wendy One', 'Wire One',
+    'Work Sans', 'Yanone Kaffeesatz', 'Yantramanav', 'Yatra One',
+    'Yellowtail', 'Yeon Sung', 'Yeseva One', 'Yesteryear', 'Yrsa',
+    'ZCOOL KuaiLe', 'ZCOOL QingKe HuangYou', 'ZCOOL XiaoWei', 'Zeyada',
+    'Zhi Mang Xing', 'Zilla Slab', 'Zilla Slab Highlight'
+  ].sort();
 
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus()
+    if (isEditing && editorRef.current) {
+      editorRef.current.focus()
+      const range = document.createRange()
+      const sel = window.getSelection()
+      range.selectNodeContents(editorRef.current)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
     }
   }, [isEditing])
 
+  // IMPROVED: Modal click handler - only closes when clicking the overlay
+  const handleModalClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setIsEditing(false)
+    }
+  }
+
   const handleSave = () => {
-    onSave(editValue)
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML
+      onSave(content)
+    }
     setIsEditing(false)
   }
 
-  const applyStyle = (style) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
+  const execCommand = (command, value = null) => {
+    document.execCommand(command, false, value)
+    editorRef.current.focus()
+  }
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = editValue.substring(start, end)
+  const handleFontSize = (px) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
 
-    let newText = editValue
-    let newCursorPos = end
-
-    switch(style) {
-      case 'bold':
-        newText = editValue.substring(0, start) + `**${selectedText}**` + editValue.substring(end)
-        newCursorPos = end + 4
-        break
-      case 'italic':
-        newText = editValue.substring(0, start) + `*${selectedText}*` + editValue.substring(end)
-        newCursorPos = end + 2
-        break
-      case 'underline':
-        newText = editValue.substring(0, start) + `__${selectedText}__` + editValue.substring(end)
-        newCursorPos = end + 4
-        break
+    const range = selection.getRangeAt(0);
+    
+    const span = document.createElement('span');
+    span.style.fontSize = `${px}px`;
+    span.style.display = 'inline';
+    
+    if (range.collapsed) {
+      span.innerHTML = ' ';
+      range.insertNode(span);
+      
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    } else {
+      try {
+        const selectedContent = range.extractContents();
+        span.appendChild(selectedContent);
+        range.insertNode(span);
+        
+        const newRange = document.createRange();
+        newRange.selectNodeContents(span);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } catch (e) {
+        console.log('Error applying font size:', e);
+      }
     }
+    
+    setCurrentFontSize(px.toString());
+    
+    if (editorRef.current) {
+      setEditValue(editorRef.current.innerHTML);
+    }
+    
+    editorRef.current.focus();
+  }
 
-    setEditValue(newText)
+  const handleFontFamily = (font) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
 
-    // Restore selection after state update
+    const range = selection.getRangeAt(0);
+    
+    if (range.collapsed) {
+      setShowFontPicker(false);
+      return;
+    }
+    
+    const span = document.createElement('span');
+    span.style.fontFamily = font;
+    
+    try {
+      const selectedContent = range.extractContents();
+      span.appendChild(selectedContent);
+      range.insertNode(span);
+      
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    } catch (e) {
+      console.log('Error applying font family:', e);
+    }
+    
+    if (editorRef.current) {
+      setEditValue(editorRef.current.innerHTML);
+    }
+    
+    setShowFontPicker(false);
+    setFontSearchTerm('');
+    editorRef.current.focus();
+  }
+
+  const handleColorChange = (color) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    
+    if (range.collapsed) {
+      setShowColorPicker(false);
+      return;
+    }
+    
+    const span = document.createElement('span');
+    span.style.color = color;
+    
+    try {
+      const selectedContent = range.extractContents();
+      span.appendChild(selectedContent);
+      range.insertNode(span);
+      
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    } catch (e) {
+      console.log('Error applying color:', e);
+    }
+    
+    if (editorRef.current) {
+      setEditValue(editorRef.current.innerHTML);
+    }
+    
+    setShowColorPicker(false);
+    setColorSearchTerm('');
+    editorRef.current.focus();
+  }
+
+  const handleCustomColor = () => {
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = customColor;
+    input.onchange = (e) => {
+      setCustomColor(e.target.value);
+      handleColorChange(e.target.value);
+    };
+    input.click();
+  }
+
+  const handleTextAlign = (align) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      return;
+    }
+    
+    document.execCommand('justify' + align, false, null);
     setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
+      if (editorRef.current) {
+        setEditValue(editorRef.current.innerHTML);
+      }
+    }, 10);
+    editorRef.current.focus();
   }
 
-  const changeFontSize = (delta) => {
-    setFontSize(prev => Math.max(12, Math.min(32, parseInt(prev) + delta)).toString())
+  const insertList = (type) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      return;
+    }
+    
+    document.execCommand('insert' + (type === 'ul' ? 'UnorderedList' : 'OrderedList'), false, null);
+    setTimeout(() => {
+      if (editorRef.current) {
+        setEditValue(editorRef.current.innerHTML);
+      }
+    }, 10);
+    editorRef.current.focus();
   }
+
+  const handleKeyDown = (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault()
+      handleSave()
+    }
+    if (e.key === 'Escape') {
+      setIsEditing(false)
+    }
+  }
+
+  // IMPROVED: Debounced font search to prevent freezing
+  const handleFontSearchChange = (e) => {
+    const value = e.target.value;
+    if (fontSearchTimeout.current) {
+      clearTimeout(fontSearchTimeout.current);
+    }
+    fontSearchTimeout.current = setTimeout(() => {
+      setFontSearchTerm(value);
+    }, 150);
+  };
+
+  // IMPROVED: Debounced color search to prevent freezing
+  const handleColorSearchChange = (e) => {
+    const value = e.target.value;
+    if (colorSearchTimeout.current) {
+      clearTimeout(colorSearchTimeout.current);
+    }
+    colorSearchTimeout.current = setTimeout(() => {
+      setColorSearchTerm(value);
+    }, 150);
+  };
+
+  // Filter fonts based on search (memoized for performance)
+  const filteredFonts = useMemo(() => {
+    return fontSearchTerm 
+      ? allFonts.filter(font => 
+          font.toLowerCase().includes(fontSearchTerm.toLowerCase())
+        )
+      : allFonts;
+  }, [fontSearchTerm]);
+
+  // Filter colors based on search (memoized for performance)
+  const filteredColors = useMemo(() => {
+    return colorSearchTerm
+      ? colors.filter(color => 
+          color.name.toLowerCase().includes(colorSearchTerm.toLowerCase()) ||
+          color.value.toLowerCase().includes(colorSearchTerm.toLowerCase())
+        )
+      : colors;
+  }, [colorSearchTerm]);
 
   if (isEditing && isEditMode) {
     return (
-      <div className="relative inline-block w-full">
-        <div className="mb-2 flex gap-2 p-2 bg-theme-secondary rounded-lg border border-theme">
-          <button
-            onClick={() => applyStyle('bold')}
-            className={`p-2 rounded hover:bg-[#EAB308]/20 transition-colors ${isBold ? 'bg-[#EAB308]/30' : ''}`}
-            title="Bold"
-          >
-            <Bold size={16} className="text-theme-primary" />
-          </button>
-          <button
-            onClick={() => applyStyle('italic')}
-            className={`p-2 rounded hover:bg-[#EAB308]/20 transition-colors ${isItalic ? 'bg-[#EAB308]/30' : ''}`}
-            title="Italic"
-          >
-            <Italic size={16} className="text-theme-primary" />
-          </button>
-          <button
-            onClick={() => applyStyle('underline')}
-            className={`p-2 rounded hover:bg-[#EAB308]/20 transition-colors ${isUnderline ? 'bg-[#EAB308]/30' : ''}`}
-            title="Underline"
-          >
-            <Underline size={16} className="text-theme-primary" />
-          </button>
-          <div className="w-px bg-theme mx-1" />
-          <div className="flex items-center gap-1">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleModalClick}>
+        <div 
+          ref={modalRef}
+          className="relative w-full max-w-4xl mx-4 border-2 border-[#EAB308] rounded-lg overflow-hidden bg-theme-primary shadow-2xl" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* MS Word Style Toolbar with Search */}
+          <div className="bg-theme-secondary border-b border-theme p-2 flex flex-wrap gap-1 sticky top-0 z-10">
+            {/* Font Family with Search */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFontPicker(!showFontPicker)}
+                className="h-8 px-3 text-sm bg-theme-primary border border-theme rounded text-theme-primary min-w-[140px] flex items-center justify-between gap-2 hover:bg-[#EAB308]/10"
+              >
+                <span className="truncate">Font Family</span>
+                <ChevronDownIcon size={14} />
+              </button>
+              
+              {showFontPicker && (
+                <div className="absolute top-full left-0 mt-1 w-72 bg-theme-primary border border-theme rounded-lg shadow-xl z-20 max-h-96 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-theme">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-theme-secondary" />
+                      <input
+                        type="text"
+                        onChange={handleFontSearchChange}
+                        placeholder="Search 1000+ fonts..."
+                        className="w-full pl-8 pr-3 py-2 text-sm bg-theme-secondary border border-theme rounded text-theme-primary"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto flex-1 p-1">
+                    {filteredFonts.map(font => (
+                      <button
+                        key={font}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFontFamily(font);
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-[#EAB308]/10 rounded text-sm"
+                        style={{ fontFamily: font }}
+                      >
+                        {font}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Font Size */}
+            <div className="relative">
+              <select
+                onChange={(e) => handleFontSize(parseInt(e.target.value))}
+                value={currentFontSize}
+                className="h-8 px-2 text-sm bg-theme-primary border border-theme rounded text-theme-primary w-24"
+                title="Font Size"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {[8,9,10,11,12,14,16,18,20,22,24,26,28,32,36,40,44,48,52,56,60,64,68,72,80,88,96].map(px => (
+                  <option key={px} value={px}>{px}px</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-px h-6 bg-theme mx-1 self-center" />
+
+            {/* Text Formatting */}
             <button
-              onClick={() => changeFontSize(-2)}
-              className="p-2 rounded hover:bg-[#EAB308]/20 transition-colors"
-              title="Decrease font size"
+              onClick={(e) => {
+                e.stopPropagation();
+                execCommand('bold');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Bold (Ctrl+B)"
             >
-              <Type size={16} className="text-theme-primary" />
+              <Bold size={18} />
             </button>
-            <span className="text-sm text-theme-primary w-12 text-center">{fontSize}px</span>
             <button
-              onClick={() => changeFontSize(2)}
-              className="p-2 rounded hover:bg-[#EAB308]/20 transition-colors"
-              title="Increase font size"
+              onClick={(e) => {
+                e.stopPropagation();
+                execCommand('italic');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Italic (Ctrl+I)"
             >
-              <Type size={16} className="text-theme-primary" />
+              <Italic size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                execCommand('underline');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Underline (Ctrl+U)"
+            >
+              <Underline size={18} />
+            </button>
+
+            {/* Color Picker with Search */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowColorPicker(!showColorPicker);
+                }}
+                className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px] relative"
+                title="Text Color"
+              >
+                <Palette size={18} />
+              </button>
+              
+              {showColorPicker && (
+                <div className="absolute top-full left-0 mt-1 w-72 bg-theme-primary border border-theme rounded-lg shadow-xl z-20 max-h-96 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-theme">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-theme-secondary" />
+                      <input
+                        type="text"
+                        onChange={handleColorSearchChange}
+                        placeholder="Search 150+ colors..."
+                        className="w-full pl-8 pr-3 py-2 text-sm bg-theme-secondary border border-theme rounded text-theme-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto flex-1 p-2">
+                    <div className="mb-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCustomColor();
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-[#EAB308]/10 rounded text-sm flex items-center gap-2 border border-theme"
+                      >
+                        <div className="w-5 h-5 rounded" style={{ backgroundColor: customColor }} />
+                        <span>Custom Color...</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-6 gap-1">
+                      {filteredColors.map((color, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleColorChange(color.value);
+                          }}
+                          className="w-8 h-8 rounded border border-theme hover:scale-110 transition-transform relative group"
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                        >
+                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-theme-primary border border-theme rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-30">
+                            {color.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="w-px h-6 bg-theme mx-1 self-center" />
+
+            {/* Alignment */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTextAlign('Left');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Align Left"
+            >
+              <AlignLeft size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTextAlign('Center');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Align Center"
+            >
+              <AlignCenter size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTextAlign('Right');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Align Right"
+            >
+              <AlignRight size={18} />
+            </button>
+
+            <div className="w-px h-6 bg-theme mx-1 self-center" />
+
+            {/* Lists */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                insertList('ul');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Bullet List"
+            >
+              <List size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                insertList('ol');
+              }}
+              className="p-1.5 rounded hover:bg-[#EAB308]/20 text-theme-primary min-w-[32px]"
+              title="Numbered List"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h1M4 18h1v-3M4 15h1" strokeLinecap="round"/>
+              </svg>
+            </button>
+
+            <div className="flex-1" />
+
+            {/* Save Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              className="px-3 py-1.5 bg-[#EAB308] text-black rounded hover:bg-[#EAB308]/90 text-sm font-medium flex items-center gap-1"
+            >
+              <Save size={16} /> Save (Ctrl+Enter)
             </button>
           </div>
+
+          {/* Editable Content Area */}
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            className={`p-4 min-h-[200px] max-h-[500px] overflow-y-auto outline-none text-theme-primary bg-theme-primary ${className}`}
+            style={{
+              fontFamily: 'inherit',
+              lineHeight: '1.6'
+            }}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            onMouseUp={() => {
+              const selection = window.getSelection();
+              if (selection.rangeCount > 0 && !selection.getRangeAt(0).collapsed) {
+                const node = selection.getRangeAt(0).startContainer.parentElement;
+                if (node && node.style && node.style.fontSize) {
+                  setCurrentFontSize(parseInt(node.style.fontSize));
+                }
+              }
+            }}
+            dangerouslySetInnerHTML={{ __html: editValue || '' }}
+          />
+
+          {/* Hint */}
+          <div className="absolute bottom-2 right-2 text-xs text-theme-secondary opacity-50">
+            Ctrl+Enter to save • Escape to cancel
+          </div>
         </div>
-        <textarea
-          ref={textareaRef}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          className={`bg-theme-secondary border-2 border-[#EAB308] rounded-lg px-3 py-2 w-full min-h-[100px] text-theme-primary ${className}`}
-          style={{ fontSize: `${fontSize}px` }}
-        />
-        <button
-          onClick={handleSave}
-          className="absolute -top-8 right-0 p-1 bg-[#EAB308] text-black rounded-full hover:scale-110 transition-transform"
-        >
-          <Save size={16} />
-        </button>
       </div>
     )
   }
 
-  return (
-    <div className="relative group">
+return (
+    <div className="relative group min-w-[2em] min-h-[1.5em]">
       <div
-        className={`${className} ${isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#EAB308]/30 rounded-lg transition-all p-2' : ''}`}
+        className={`${className} ${isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#EAB308]/30 rounded-lg transition-all' : ''}`}
         onClick={() => isEditMode && setIsEditing(true)}
-        dangerouslySetInnerHTML={{
-          __html: value
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/__(.*?)__/g, '<u>$1</u>')
-        }}
-      />
-      {isEditMode && !isEditing && (
-        <div className="absolute -top-8 right-0 p-1 bg-[#EAB308] text-black rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-          <Edit2 size={14} />
-        </div>
-      )}
+      >
+        {value && value !== '<br>' && value !== '&nbsp;' && value !== ' ' && value.trim() !== '' ? (
+          <span dangerouslySetInnerHTML={{ __html: value }} />
+        ) : (
+          <span className="text-theme-secondary opacity-50 italic border border-dashed border-[#EAB308]/30 px-2 py-1 rounded inline-block min-w-[4em]">
+            {placeholder}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
 
-// Gallery Section Component with Reordering
+// Gallery Section Component
 const GallerySection = ({
   id,
   categoryId,
@@ -222,13 +1027,11 @@ const GallerySection = ({
     setThumbnailsLoaded(prev => ({ ...prev, [index]: true }))
   }
 
-  // Get flexbox classes instead of grid - this will fill all space
   const getFlexClasses = () => {
     const count = images.length
     return 'flex flex-wrap justify-center gap-3'
   }
 
-  // Calculate width for each thumbnail based on count
   const getThumbnailWidth = () => {
     const count = images.length
     if (count === 1) return 'w-full max-w-[200px]'
@@ -242,7 +1045,6 @@ const GallerySection = ({
 
   return (
     <div className="mb-32 relative group/section">
-      {/* Section Controls */}
       {isEditMode && (
         <div className="absolute -top-12 right-0 flex gap-2">
           {showMoveUp && (
@@ -280,6 +1082,7 @@ const GallerySection = ({
             onSave={onTitleEdit}
             isEditMode={isEditMode}
             className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-theme-primary"
+            placeholder="Section Title"
           />
           {subtitle && (
             <RichTextEditor
@@ -287,6 +1090,7 @@ const GallerySection = ({
               onSave={onSubtitleEdit}
               isEditMode={isEditMode}
               className="mt-4 text-theme-secondary text-lg max-w-2xl"
+              placeholder="Section Subtitle"
             />
           )}
           <div className="h-[2px] w-24 bg-[#EAB308] mt-6" />
@@ -325,7 +1129,6 @@ const GallerySection = ({
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
         >
-          {/* Main Featured Image */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -367,7 +1170,6 @@ const GallerySection = ({
               </button>
             )}
 
-            {/* Navigation Arrows */}
             {images.length > 1 && (
               <>
                 <button
@@ -385,7 +1187,6 @@ const GallerySection = ({
               </>
             )}
 
-            {/* Indicators */}
             <div className="absolute bottom-4 left-4 flex gap-1">
               {images.map((_, index) => (
                 <div
@@ -404,7 +1205,6 @@ const GallerySection = ({
             </div>
           </motion.div>
 
-          {/* Thumbnails */}
           {images.length > 1 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -447,85 +1247,6 @@ const GallerySection = ({
               ))}
             </motion.div>
           )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Rich Text Editable Component for simple text
-const RichEditableText = ({ value, onSave, className = "", tag = "span", isEditMode }) => {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editValue, setEditValue] = useState(value)
-  const inputRef = useRef(null)
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isEditing])
-
-  const handleSave = () => {
-    onSave(editValue)
-    setIsEditing(false)
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && tag !== 'p') {
-      e.preventDefault()
-      handleSave()
-    }
-    if (e.key === 'Escape') {
-      setEditValue(value)
-      setIsEditing(false)
-    }
-  }
-
-  const Tag = tag
-
-  if (isEditing && isEditMode) {
-    return (
-      <div className="relative inline-block group w-full">
-        {tag === 'p' ? (
-          <textarea
-            ref={inputRef}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            className={`bg-theme-secondary border-2 border-[#EAB308] rounded-lg px-3 py-2 w-full min-h-[100px] text-theme-primary ${className}`}
-          />
-        ) : (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            className={`bg-theme-secondary border-2 border-[#EAB308] rounded-lg px-3 py-1 text-theme-primary ${className}`}
-          />
-        )}
-        <button
-          onClick={handleSave}
-          className="absolute -top-8 right-0 p-1 bg-[#EAB308] text-black rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Save size={16} />
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative group">
-      <Tag className={`${className} ${isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#EAB308]/30 rounded-lg transition-all' : ''}`}
-        onClick={() => isEditMode && setIsEditing(true)}
-      >
-        {value}
-      </Tag>
-      {isEditMode && !isEditing && (
-        <div className="absolute -top-8 right-0 p-1 bg-[#EAB308] text-black rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-          <Edit2 size={14} />
         </div>
       )}
     </div>
@@ -576,7 +1297,7 @@ const CrudControls = ({ onAdd, onDelete, onMoveUp, onMoveDown, showMove = true, 
   )
 }
 
-// Optimized Image Modal Component
+// Image Modal Component
 const ImageModal = ({ src, isOpen, onClose, onPrev, onNext }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
@@ -714,119 +1435,72 @@ const SectionTitle = ({ children, align = "left", subtitle, isEditMode, onTitleE
     viewport={{ once: true }}
     className={`mb-12 ${align === 'center' ? 'text-center' : ''}`}
   >
-    <RichEditableText
+    <RichTextEditor
       value={children}
       onSave={onTitleEdit}
-      tag="h2"
       isEditMode={isEditMode}
       className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-theme-primary"
+      placeholder="Section Title"
     />
     {subtitle && (
-      <RichEditableText
+      <RichTextEditor
         value={subtitle}
         onSave={onSubtitleEdit}
-        tag="p"
         isEditMode={isEditMode}
         className="mt-4 text-theme-secondary text-lg max-w-2xl mx-auto"
+        placeholder="Section Subtitle"
       />
     )}
     <div className={`h-[2px] w-24 bg-[#EAB308] mt-6 ${align === 'center' ? 'mx-auto' : ''}`} />
   </motion.div>
 )
 
-// Experience Section Component with Full CRUD
+// Experience Section Component
 const ExperienceSection = ({ isEditMode }) => {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [expData, setExpData] = useState({
-    summary: `Senior Graphic Designer with over 8 years of experience in digital printing, brand identity, and web design.
-    Passionate about creating clean, purposeful designs that communicate effectively and deliver results.`,
+  const [expData, setExpData] = useState(() => {
+    const saved = localStorage.getItem('experienceData')
+    return saved ? JSON.parse(saved) : {
+      professionalSummaryTitle: "Professional Summary",
+      summary: "",
 
-    work: [
-      {
-        id: '1',
-        title: "Senior Graphic Designer",
-        company: "Skills Unlimited Digital Printing Services",
-        period: "December 2025 - Present",
-        type: "Freelance",
-        responsibilities: [
-          { id: '1-1', text: "Led end-to-end design production for large- and small-format digital printing projects, including banners, stickers, DTF, sublimation, signage, packaging, and marketing collateral." },
-          { id: '1-2', text: "Prepared press-ready files and managed pre-press workflows, ensuring accurate color profiles, bleed, imposition, production efficiency, and minimal material waste." },
-          { id: '1-3', text: "Coordinated with production teams and clients to ensure on-time delivery, supervised print quality control, and mentored junior designers on workflow and print standards." }
-        ]
-      },
-      {
-        id: '2',
-        title: "Graphic Designer",
-        company: "The Branding Agency",
-        period: "November 2024 - October 2025",
-        type: "Full Time",
-        responsibilities: [
-          { id: '2-1', text: "Designed impactful brand identities and marketing materials that effectively communicated client messages while maintaining cross-platform consistency." },
-          { id: '2-2', text: "Collaborated with clients and cross-functional teams to achieve project goals, meet deadlines, and uphold high creative standards." },
-          { id: '2-3', text: "Stayed current with design trends and industry best practices to deliver innovative, high-quality visual solutions." }
-        ]
-      },
-      {
-        id: '3',
-        title: "Web Designer",
-        company: "3LC Corporation",
-        period: "June 2020 - November 2024",
-        type: "Freelance",
-        responsibilities: [
-          { id: '3-1', text: "Designed and maintained conversion-focused e-commerce websites for a deepdiving business, ensuring strong user experience, mobile responsiveness, and brand consistency." },
-          { id: '3-2', text: "Managed product listings, pricing updates, inventory synchronization, and developed customized landing pages and promotional campaigns." },
-          { id: '3-3', text: "Integrated payment gateways, order tracking systems, and third-party apps while monitoring analytics, applying basic SEO, and optimizing site performance." }
-        ]
-      },
-      {
-        id: '4',
-        title: "Junior Graphic Designer",
-        company: "Skills Unlimited Digital Printing Services",
-        period: "January 2015 - May 2024",
-        type: "Full Time",
-        responsibilities: [
-          { id: '4-1', text: "Designed and prepared print-ready artwork for banners, tarpaulins, flyers, stickers, and apparel (DTF/sublimation), ensuring high-quality and production-ready outputs." },
-          { id: '4-2', text: "Converted client-provided files into accurate production formats and assisted in pre-press processes, including file checking, resizing, imposition, and RIP software preparation." },
-          { id: '4-3', text: "Coordinated with senior designers and production staff to ensure print accuracy and on-time delivery, while supporting walk-in clients with layout revisions and rush print requests." }
-        ]
-      },
-      {
-        id: '5',
-        title: "IT Manager | MIS Coordinator",
-        company: "Holy Trinity School",
-        period: "June 2013 - October 2014",
-        type: "Full Time",
-        responsibilities: [
-          { id: '5-1', text: "Oversaw the school's IT infrastructure and administered the Management Information System (MIS) for enrollment, grading, attendance, billing, and academic records." },
-          { id: '5-2', text: "Led digital transformation initiatives by streamlining workflows, automating processes, and integrating technology across academic and administrative departments." },
-          { id: '5-3', text: "Provided technical support, implemented data security protocols and backup systems, and developed analytical reporting tools." }
-        ]
+      workHistoryTitle: "Work History",
+      work: [],
+
+      educationTitle: "Education",
+      education: {
+        degree: "",
+        school: "",
+        period: ""
       }
-    ],
-
-    education: {
-      degree: "Bachelor of Information Technology - Multimedia",
-      school: "Holy Angel University",
-      period: "June 2008 - April 2013"
     }
   })
 
-  // Generate unique IDs
+  useEffect(() => {
+    localStorage.setItem('experienceData', JSON.stringify(expData))
+  }, [expData])
+
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-  // Summary CRUD
+  const updateProfessionalSummaryTitle = (newTitle) => {
+    setExpData(prev => ({ ...prev, professionalSummaryTitle: newTitle }))
+  }
+
   const updateSummary = (newSummary) => {
     setExpData(prev => ({ ...prev, summary: newSummary }))
   }
 
-  // Work CRUD
+  const updateWorkHistoryTitle = (newTitle) => {
+    setExpData(prev => ({ ...prev, workHistoryTitle: newTitle }))
+  }
+
   const addWork = () => {
     const newWork = {
       id: generateId(),
-      title: "New Position",
-      company: "Company Name",
-      period: "Start Date - End Date",
-      type: "Full Time",
+      title: "",
+      company: "",
+      period: "",
+      type: "",
       responsibilities: []
     }
     setExpData(prev => ({
@@ -867,11 +1541,10 @@ const ExperienceSection = ({ isEditMode }) => {
     }))
   }
 
-  // Responsibility CRUD
   const addResponsibility = (workId) => {
     const newResp = {
       id: generateId(),
-      text: "New responsibility"
+      text: ""
     }
     setExpData(prev => ({
       ...prev,
@@ -931,7 +1604,10 @@ const ExperienceSection = ({ isEditMode }) => {
     }))
   }
 
-  // Education CRUD
+  const updateEducationTitle = (newTitle) => {
+    setExpData(prev => ({ ...prev, educationTitle: newTitle }))
+  }
+
   const updateEducation = (field, value) => {
     setExpData(prev => ({
       ...prev,
@@ -981,7 +1657,6 @@ const ExperienceSection = ({ isEditMode }) => {
               className="overflow-hidden"
             >
               <div className="mt-8 space-y-12">
-                {/* Professional Summary */}
                 <div className="bg-theme-primary rounded-2xl p-8 border border-theme relative">
                   {isEditMode && (
                     <CrudControls
@@ -993,19 +1668,31 @@ const ExperienceSection = ({ isEditMode }) => {
                       className="absolute top-4 right-4"
                     />
                   )}
-                  <h3 className="text-xl font-bold text-[#EAB308] mb-4">Professional Summary</h3>
+                  <RichTextEditor
+                    value={expData.professionalSummaryTitle}
+                    onSave={updateProfessionalSummaryTitle}
+                    isEditMode={isEditMode}
+                    className="text-xl font-bold text-[#EAB308] mb-4"
+                    placeholder="Professional Summary Title"
+                  />
                   <RichTextEditor
                     value={expData.summary}
                     onSave={updateSummary}
                     isEditMode={isEditMode}
                     className="text-theme-secondary leading-relaxed"
+                    placeholder="Add your professional summary here..."
                   />
                 </div>
 
-                {/* Work Experience */}
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold text-theme-primary">Work History</h3>
+                    <RichTextEditor
+                      value={expData.workHistoryTitle}
+                      onSave={updateWorkHistoryTitle}
+                      isEditMode={isEditMode}
+                      className="text-2xl font-bold text-theme-primary"
+                      placeholder="Work History Title"
+                    />
                   </div>
 
                   {expData.work.map((job, index) => (
@@ -1031,35 +1718,35 @@ const ExperienceSection = ({ isEditMode }) => {
                       <div className="bg-theme-primary rounded-xl p-6 border border-theme hover:shadow-lg transition-all">
                         <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                           <div>
-                            <RichEditableText
+                            <RichTextEditor
                               value={job.title}
                               onSave={(val) => updateWork(job.id, 'title', val)}
-                              tag="h4"
                               isEditMode={isEditMode}
                               className="text-xl font-bold text-theme-primary"
+                              placeholder="Job Title"
                             />
-                            <RichEditableText
+                            <RichTextEditor
                               value={job.company}
                               onSave={(val) => updateWork(job.id, 'company', val)}
-                              tag="span"
                               isEditMode={isEditMode}
                               className="text-[#EAB308] font-medium"
+                              placeholder="Company Name"
                             />
                           </div>
                           <div className="text-right">
-                            <RichEditableText
+                            <RichTextEditor
                               value={job.period}
                               onSave={(val) => updateWork(job.id, 'period', val)}
-                              tag="div"
                               isEditMode={isEditMode}
                               className="text-sm text-theme-secondary opacity-60"
+                              placeholder="Start Date - End Date"
                             />
-                            <RichEditableText
+                            <RichTextEditor
                               value={job.type}
                               onSave={(val) => updateWork(job.id, 'type', val)}
-                              tag="div"
                               isEditMode={isEditMode}
                               className="text-xs px-3 py-1 bg-[#EAB308]/10 text-[#EAB308] rounded-full mt-2"
+                              placeholder="Job Type"
                             />
                           </div>
                         </div>
@@ -1073,6 +1760,7 @@ const ExperienceSection = ({ isEditMode }) => {
                                 onSave={(val) => updateResponsibility(job.id, resp.id, val)}
                                 isEditMode={isEditMode}
                                 className="text-theme-secondary text-sm leading-relaxed flex-1"
+                                placeholder="Add responsibility..."
                               />
                               {isEditMode && (
                                 <CrudControls
@@ -1090,7 +1778,6 @@ const ExperienceSection = ({ isEditMode }) => {
                   ))}
                 </div>
 
-                {/* Education */}
                 <div className="bg-theme-primary rounded-2xl p-8 border border-theme relative">
                   {isEditMode && (
                     <CrudControls
@@ -1104,30 +1791,36 @@ const ExperienceSection = ({ isEditMode }) => {
                       className="absolute top-4 right-4"
                     />
                   )}
-                  <h3 className="text-xl font-bold text-[#EAB308] mb-4">Education</h3>
+                  <RichTextEditor
+                    value={expData.educationTitle}
+                    onSave={updateEducationTitle}
+                    isEditMode={isEditMode}
+                    className="text-xl font-bold text-[#EAB308] mb-4"
+                    placeholder="Education Title"
+                  />
                   <div className="flex flex-wrap justify-between items-start gap-4">
                     <div>
-                      <RichEditableText
+                      <RichTextEditor
                         value={expData.education.degree}
                         onSave={(val) => updateEducation('degree', val)}
-                        tag="h4"
                         isEditMode={isEditMode}
                         className="text-lg font-bold text-theme-primary"
+                        placeholder="Degree"
                       />
-                      <RichEditableText
+                      <RichTextEditor
                         value={expData.education.school}
                         onSave={(val) => updateEducation('school', val)}
-                        tag="p"
                         isEditMode={isEditMode}
                         className="text-theme-secondary"
+                        placeholder="School/University"
                       />
                     </div>
-                    <RichEditableText
+                    <RichTextEditor
                       value={expData.education.period}
                       onSave={(val) => updateEducation('period', val)}
-                      tag="span"
                       isEditMode={isEditMode}
                       className="text-sm text-theme-secondary opacity-60"
+                      placeholder="Period"
                     />
                   </div>
                 </div>
@@ -1140,7 +1833,7 @@ const ExperienceSection = ({ isEditMode }) => {
   )
 }
 
-// Stat Item Component with CRUD
+// Stat Item Component
 const StatItem = ({ stat, index, onUpdate, onDelete, onMove, isEditMode }) => {
   return (
     <motion.div
@@ -1158,25 +1851,25 @@ const StatItem = ({ stat, index, onUpdate, onDelete, onMove, isEditMode }) => {
           className="absolute -top-8 right-0 opacity-0 group-hover/stat:opacity-100 transition-opacity"
         />
       )}
-      <RichEditableText
+      <RichTextEditor
         value={stat.n}
         onSave={(val) => onUpdate('n', val)}
-        tag="div"
         isEditMode={isEditMode}
         className="text-xl sm:text-2xl md:text-3xl font-bold text-[#EAB308]"
+        placeholder="Number"
       />
-      <RichEditableText
+      <RichTextEditor
         value={stat.l}
         onSave={(val) => onUpdate('l', val)}
-        tag="div"
         isEditMode={isEditMode}
         className="text-xs sm:text-sm text-theme-secondary"
+        placeholder="Label"
       />
     </motion.div>
   )
 }
 
-// Promise Item Component with CRUD
+// Promise Item Component
 const PromiseItem = ({ item, index, onUpdate, onDelete, onMove, isEditMode }) => {
   return (
     <motion.div
@@ -1194,25 +1887,26 @@ const PromiseItem = ({ item, index, onUpdate, onDelete, onMove, isEditMode }) =>
           className="absolute -top-8 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
         />
       )}
-      <RichEditableText
+      <RichTextEditor
         value={item.n}
         onSave={(val) => onUpdate('n', val)}
-        tag="div"
         isEditMode={isEditMode}
         className="text-4xl sm:text-5xl md:text-6xl font-black text-[#EAB308]/20 mb-3 sm:mb-4 md:mb-5 lg:mb-6"
+        placeholder="00"
       />
-      <RichEditableText
+      <RichTextEditor
         value={item.t}
         onSave={(val) => onUpdate('t', val)}
-        tag="h3"
         isEditMode={isEditMode}
         className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 md:mb-4 text-theme-primary"
+        placeholder="Title"
       />
       <RichTextEditor
         value={item.d}
         onSave={(val) => onUpdate('d', val)}
         isEditMode={isEditMode}
         className="text-sm sm:text-base md:text-lg text-theme-secondary leading-relaxed"
+        placeholder="Description..."
       />
     </motion.div>
   )
@@ -1230,37 +1924,42 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
-  // State for gallery sections
-  const [gallerySections, setGallerySections] = useState([
-    {
-      id: 'uiux',
-      categoryId: 'uiux_design',
-      title: 'UI/UX Design',
-      subtitle: 'Clean, intuitive interfaces for digital products',
-      images: []
-    },
-    {
-      id: 'brand',
-      categoryId: 'brand_identity',
-      title: 'Brand Identity',
-      subtitle: 'Guidelines and identity systems that define brands',
-      images: []
-    },
-    {
-      id: 'social',
-      categoryId: 'social_media',
-      title: 'Social Media',
-      subtitle: 'Engaging visual content for social platforms',
-      images: []
-    },
-    {
-      id: 'print',
-      categoryId: 'presentations_print',
-      title: 'Presentations & Print',
-      subtitle: 'Professional presentation and print materials',
-      images: []
+  const [gallerySections, setGallerySections] = useState(() => {
+    const saved = localStorage.getItem('gallerySections')
+    if (saved) {
+      return JSON.parse(saved)
     }
-  ])
+    return [
+      {
+        id: 'uiux',
+        categoryId: 'uiux_design',
+        title: 'UI/UX Design',
+        subtitle: 'Clean, intuitive interfaces for digital products',
+        images: []
+      },
+      {
+        id: 'brand',
+        categoryId: 'brand_identity',
+        title: 'Brand Identity',
+        subtitle: 'Guidelines and identity systems that define brands',
+        images: []
+      },
+      {
+        id: 'social',
+        categoryId: 'social_media',
+        title: 'Social Media',
+        subtitle: 'Engaging visual content for social platforms',
+        images: []
+      },
+      {
+        id: 'print',
+        categoryId: 'presentations_print',
+        title: 'Presentations & Print',
+        subtitle: 'Professional presentation and print materials',
+        images: []
+      }
+    ]
+  })
 
   const [profileUrl, setProfileUrl] = useState(localStorage.getItem('ron_profile_url') || '')
   const [profileId, setProfileId] = useState(localStorage.getItem('ron_profile_id') || '')
@@ -1268,37 +1967,63 @@ function App() {
   const [bgId, setBgId] = useState(localStorage.getItem('ron_bg_id') || '')
   const [loading, setLoading] = useState(true)
 
-  // Editable text states with CRUD
-  const [heroTitle, setHeroTitle] = useState("Simplicity.")
-  const [heroSubtitle, setHeroSubtitle] = useState("Pure. Precise. Purposeful.")
-  const [aboutName, setAboutName] = useState("Ron Medina")
-  const [aboutText, setAboutText] = useState("Designing simplicity out of complexity. Currently crafting digital experiences that matter.")
+  // ALL TEXT STATES - EMPTY BY DEFAULT
+  const [heroTitle, setHeroTitle] = useState(() => localStorage.getItem('heroTitle') || "")
+  const [heroSubtitle, setHeroSubtitle] = useState(() => localStorage.getItem('heroSubtitle') || "")
+  
 
-  // Stats with CRUD
-  const [stats, setStats] = useState([
-    { id: '1', n: '5+', l: 'Years Experience' },
-    { id: '2', n: '100+', l: 'Projects' },
-    { id: '3', n: '50+', l: 'Happy Clients' }
-  ])
+const [aboutName, setAboutName] = useState(() => localStorage.getItem('aboutName') || "")
+  
+  const [aboutText, setAboutText] = useState(() => localStorage.getItem('aboutText') || "")
 
-  // Promise items with CRUD
-  const [promiseItems, setPromiseItems] = useState([
-    { id: '1', n: "01", t: "Designs you will love", d: "I love creating new things — it's what drives me. Great teamwork always brings ideas to life." },
-    { id: '2', n: "02", t: "Stress free work", d: "I keep things simple — no stress, no drama — just results that help move forward." }
-  ])
+  const [stats, setStats] = useState(() => {
+    const saved = localStorage.getItem('stats')
+    return saved ? JSON.parse(saved) : [
+      { id: '1', n: '', l: '' },
+      { id: '2', n: '', l: '' },
+      { id: '3', n: '', l: '' }
+    ]
+  })
 
-  // Contact section with CRUD
-  const [contactTitle, setContactTitle] = useState("Let's create something amazing")
-  const [contactText, setContactText] = useState("Ready to bring your ideas to life? Let's collaborate and make something extraordinary together.")
-  const [contactButton, setContactButton] = useState("Get in touch")
+  const [promiseItems, setPromiseItems] = useState(() => {
+    const saved = localStorage.getItem('promiseItems')
+    return saved ? JSON.parse(saved) : [
+      { id: '1', n: "01", t: "", d: "" },
+      { id: '2', n: "02", t: "", d: "" }
+    ]
+  })
 
-  // Footer with CRUD
-  const [footerName, setFooterName] = useState("Ron Medina")
-  const [footerText, setFooterText] = useState("Designing simplicity out of complexity.")
-  const [footerEmail, setFooterEmail] = useState("hello@ronmedina.com")
-  const [copyright, setCopyright] = useState("© 2024 Ron Medina. All rights reserved.")
+  const [twoThingsTitle, setTwoThingsTitle] = useState(() => localStorage.getItem('twoThingsTitle') || "Two Things")
+  const [twoThingsSubtitle, setTwoThingsSubtitle] = useState(() => localStorage.getItem('twoThingsSubtitle') || "")
 
-  // Generate unique IDs
+  const [contactTitle, setContactTitle] = useState(() => localStorage.getItem('contactTitle') || "")
+  const [contactText, setContactText] = useState(() => localStorage.getItem('contactText') || "")
+  const [contactButton, setContactButton] = useState(() => localStorage.getItem('contactButton') || "")
+
+  const [footerName, setFooterName] = useState(() => localStorage.getItem('footerName') || "")
+  const [footerText, setFooterText] = useState(() => localStorage.getItem('footerText') || "")
+  const [footerEmail, setFooterEmail] = useState(() => localStorage.getItem('footerEmail') || "")
+  const [copyright, setCopyright] = useState(() => localStorage.getItem('copyright') || "")
+
+  // Save all changes to localStorage
+  useEffect(() => { localStorage.setItem('gallerySections', JSON.stringify(gallerySections)) }, [gallerySections])
+  useEffect(() => { localStorage.setItem('heroTitle', heroTitle) }, [heroTitle])
+  useEffect(() => { localStorage.setItem('heroSubtitle', heroSubtitle) }, [heroSubtitle])
+ 
+  useEffect(() => { localStorage.setItem('aboutName', aboutName) }, [aboutName])
+  useEffect(() => { localStorage.setItem('aboutText', aboutText) }, [aboutText])
+  useEffect(() => { localStorage.setItem('stats', JSON.stringify(stats)) }, [stats])
+  useEffect(() => { localStorage.setItem('promiseItems', JSON.stringify(promiseItems)) }, [promiseItems])
+  useEffect(() => { localStorage.setItem('twoThingsTitle', twoThingsTitle) }, [twoThingsTitle])
+  useEffect(() => { localStorage.setItem('twoThingsSubtitle', twoThingsSubtitle) }, [twoThingsSubtitle])
+  useEffect(() => { localStorage.setItem('contactTitle', contactTitle) }, [contactTitle])
+  useEffect(() => { localStorage.setItem('contactText', contactText) }, [contactText])
+  useEffect(() => { localStorage.setItem('contactButton', contactButton) }, [contactButton])
+  useEffect(() => { localStorage.setItem('footerName', footerName) }, [footerName])
+  useEffect(() => { localStorage.setItem('footerText', footerText) }, [footerText])
+  useEffect(() => { localStorage.setItem('footerEmail', footerEmail) }, [footerEmail])
+  useEffect(() => { localStorage.setItem('copyright', copyright) }, [copyright])
+
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
   // Gallery Section CRUD
@@ -1320,17 +2045,18 @@ function App() {
   }
 
   const moveGallerySection = (sectionId, direction) => {
-    const index = gallerySections.findIndex(s => s.id === sectionId)
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === gallerySections.length - 1)
-    ) return
+    setGallerySections(prev => {
+      const index = prev.findIndex(s => s.id === sectionId)
+      if (
+        (direction === 'up' && index === 0) ||
+        (direction === 'down' && index === prev.length - 1)
+      ) return prev
 
-    const newSections = [...gallerySections]
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    ;[newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]]
-
-    setGallerySections(newSections)
+      const newSections = [...prev]
+      const newIndex = direction === 'up' ? index - 1 : index + 1
+      ;[newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]]
+      return newSections
+    })
   }
 
   const updateGallerySection = (sectionId, field, value) => {
@@ -1347,7 +2073,7 @@ function App() {
 
   // Stats CRUD
   const addStat = () => {
-    setStats(prev => [...prev, { id: generateId(), n: 'New', l: 'New Stat' }])
+    setStats(prev => [...prev, { id: generateId(), n: '', l: '' }])
   }
 
   const updateStat = (id, field, value) => {
@@ -1363,17 +2089,18 @@ function App() {
   }
 
   const moveStat = (id, direction) => {
-    const index = stats.findIndex(s => s.id === id)
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === stats.length - 1)
-    ) return
+    setStats(prev => {
+      const index = prev.findIndex(s => s.id === id)
+      if (
+        (direction === 'up' && index === 0) ||
+        (direction === 'down' && index === prev.length - 1)
+      ) return prev
 
-    const newStats = [...stats]
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    ;[newStats[index], newStats[newIndex]] = [newStats[newIndex], newStats[index]]
-
-    setStats(newStats)
+      const newStats = [...prev]
+      const newIndex = direction === 'up' ? index - 1 : index + 1
+      ;[newStats[index], newStats[newIndex]] = [newStats[newIndex], newStats[index]]
+      return newStats
+    })
   }
 
   // Promise Items CRUD
@@ -1382,8 +2109,8 @@ function App() {
     setPromiseItems(prev => [...prev, {
       id: generateId(),
       n: newNumber,
-      t: 'New Title',
-      d: 'New description'
+      t: '',
+      d: ''
     }])
   }
 
@@ -1400,28 +2127,30 @@ function App() {
   }
 
   const movePromiseItem = (id, direction) => {
-    const index = promiseItems.findIndex(i => i.id === id)
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === promiseItems.length - 1)
-    ) return
+    setPromiseItems(prev => {
+      const index = prev.findIndex(i => i.id === id)
+      if (
+        (direction === 'up' && index === 0) ||
+        (direction === 'down' && index === prev.length - 1)
+      ) return prev
 
-    const newItems = [...promiseItems]
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    ;[newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]]
+      const newItems = [...prev]
+      const newIndex = direction === 'up' ? index - 1 : index + 1
+      ;[newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]]
 
-    // Update numbers
-    setPromiseItems(newItems.map((item, i) => ({
-      ...item,
-      n: (i + 1).toString().padStart(2, '0')
-    })))
+      return newItems.map((item, i) => ({
+        ...item,
+        n: (i + 1).toString().padStart(2, '0')
+      }))
+    })
   }
 
+  // Load images from Cloudinary
   useEffect(() => {
     const loadAllImages = async () => {
       setLoading(true)
       try {
-        const [uiux, brand, social, print, profiles, bgs] = await Promise.all([
+        const [uiux, brand, social, print, profiles, bgs] = await Promise.allSettled([
           fetchImagesByTag('uiux_design'),
           fetchImagesByTag('brand_identity'),
           fetchImagesByTag('social_media'),
@@ -1430,44 +2159,33 @@ function App() {
           fetchImagesByTag('static_bg')
         ])
 
-        setGallerySections([
-          {
-            id: 'uiux',
-            categoryId: 'uiux_design',
-            title: 'UI/UX Design',
-            subtitle: 'Clean, intuitive interfaces for digital products',
-            images: uiux
-          },
-          {
-            id: 'brand',
-            categoryId: 'brand_identity',
-            title: 'Brand Identity',
-            subtitle: 'Guidelines and identity systems that define brands',
-            images: brand
-          },
-          {
-            id: 'social',
-            categoryId: 'social_media',
-            title: 'Social Media',
-            subtitle: 'Engaging visual content for social platforms',
-            images: social
-          },
-          {
-            id: 'print',
-            categoryId: 'presentations_print',
-            title: 'Presentations & Print',
-            subtitle: 'Professional presentation and print materials',
-            images: print
-          }
-        ])
+        setGallerySections(prev => {
+          const updated = prev.map(section => {
+            if (section.categoryId === 'uiux_design' || section.id === 'uiux') {
+              return { ...section, images: uiux.status === 'fulfilled' ? uiux.value : [] }
+            }
+            if (section.categoryId === 'brand_identity' || section.id === 'brand') {
+              return { ...section, images: brand.status === 'fulfilled' ? brand.value : [] }
+            }
+            if (section.categoryId === 'social_media' || section.id === 'social') {
+              return { ...section, images: social.status === 'fulfilled' ? social.value : [] }
+            }
+            if (section.categoryId === 'presentations_print' || section.id === 'print') {
+              return { ...section, images: print.status === 'fulfilled' ? print.value : [] }
+            }
+            return section
+          })
+          localStorage.setItem('gallerySections', JSON.stringify(updated))
+          return updated
+        })
 
-        if (profiles.length > 0) {
-          const latest = profiles.sort((a,b) => b.version - a.version)[0];
+        if (profiles.status === 'fulfilled' && profiles.value.length > 0) {
+          const latest = profiles.value.sort((a,b) => b.version - a.version)[0];
           setProfileUrl(latest.url); setProfileId(latest.public_id);
           localStorage.setItem('ron_profile_url', latest.url); localStorage.setItem('ron_profile_id', latest.public_id);
         }
-        if (bgs.length > 0) {
-          const latest = bgs.sort((a,b) => b.version - a.version)[0];
+        if (bgs.status === 'fulfilled' && bgs.value.length > 0) {
+          const latest = bgs.value.sort((a,b) => b.version - a.version)[0];
           setBgUrl(latest.url); setBgId(latest.public_id);
           localStorage.setItem('ron_bg_url', latest.url); localStorage.setItem('ron_bg_id', latest.public_id);
         }
@@ -1507,7 +2225,7 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Fixed useScroll with layoutEffect: false to prevent warning
+  // Fixed useScroll with layoutEffect: false
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -1558,7 +2276,7 @@ function App() {
   return (
     <div className="bg-theme-primary text-theme-primary transition-colors duration-500 overflow-x-hidden min-h-screen relative">
 
-      {/* Navigation - Exact Original */}
+      {/* Navigation */}
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -1614,7 +2332,7 @@ function App() {
         </AnimatePresence>
       </motion.nav>
 
-      {/* Hero Section - Exact Original Styling and Sizes */}
+      {/* Hero Section */}
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden bg-black transition-colors duration-500">
         <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="absolute inset-0">
           <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 20, repeat: Infinity }} className="absolute inset-0">
@@ -1634,19 +2352,19 @@ function App() {
 
         <div className="relative z-10 text-center px-4 w-full">
           <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }} className="flex flex-col items-center">
-            <RichEditableText
+            <RichTextEditor
               value={heroTitle}
               onSave={setHeroTitle}
-              tag="h1"
               isEditMode={isEditMode}
               className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-white mb-4 sm:mb-6 tracking-tighter px-2"
+              placeholder="Hero Title"
             />
-            <RichEditableText
+            <RichTextEditor
               value={heroSubtitle}
               onSave={setHeroSubtitle}
-              tag="p"
               isEditMode={isEditMode}
               className="text-white/80 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl tracking-[0.3em] sm:tracking-[0.5em] uppercase mb-8 sm:mb-12 px-4"
+              placeholder="Hero Subtitle"
             />
           </motion.div>
         </div>
@@ -1660,7 +2378,7 @@ function App() {
 
       <main className="relative z-20 bg-theme-primary transition-colors duration-500">
 
-        {/* Profile Section - Exact Original Stats with CRUD */}
+        {/* Profile Section */}
         <section ref={aboutRef} className="py-16 sm:py-20 md:py-24 lg:py-32 px-4 sm:px-6 md:px-8 lg:px-12">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-center">
@@ -1682,15 +2400,24 @@ function App() {
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="space-y-4 sm:space-y-5 md:space-y-6 px-2 sm:px-0">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] text-theme-primary">
-                  I'm <RichEditableText value={aboutName} onSave={setAboutName} tag="span" isEditMode={isEditMode} className="text-[#EAB308]" />
-                </h2>
-                <RichTextEditor
-                  value={aboutText}
-                  onSave={setAboutText}
-                  isEditMode={isEditMode}
-                  className="text-base sm:text-lg md:text-xl lg:text-2xl text-theme-secondary leading-relaxed"
-                />
+<h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] text-theme-primary min-h-[1.5em]">
+  <RichTextEditor 
+    value={aboutName} 
+    onSave={setAboutName} 
+    isEditMode={isEditMode} 
+    className="text-[#EAB308] inline-block" 
+    placeholder="Your Name"
+  />
+</h2>
+                <div>
+                  <RichTextEditor
+                    value={aboutText}
+                    onSave={setAboutText}
+                    isEditMode={isEditMode}
+                    className="text-base sm:text-lg md:text-xl lg:text-2xl text-theme-secondary leading-relaxed"
+                    placeholder="Designing simplicity out of complexity. Currently crafting digital experiences that matter."
+                  />
+                </div>
 
                 <div className="flex gap-4 sm:gap-6 md:gap-8 pt-4 sm:pt-6 md:pt-8 relative">
                   {isEditMode && (
@@ -1720,10 +2447,10 @@ function App() {
           </div>
         </section>
 
-        {/* Experience Section with Full CRUD */}
+        {/* Experience Section */}
         <ExperienceSection isEditMode={isEditMode} />
 
-        {/* Gallery Sections with Add Section Button */}
+        {/* Gallery Sections */}
         <section ref={workRef} className="py-16 sm:py-20 md:py-24 lg:py-32 px-4 sm:px-6 md:px-8 lg:px-12 bg-theme-secondary transition-colors duration-500">
           <div className="max-w-7xl mx-auto">
             {isEditMode && (
@@ -1768,7 +2495,7 @@ function App() {
           </div>
         </section>
 
-        {/* Promise Section - EXACT ORIGINAL TEXT with CRUD */}
+        {/* Promise Section */}
         <section className="py-16 sm:py-20 md:py-24 lg:py-32 px-4 sm:px-6 md:px-8 lg:px-12 bg-theme-primary transition-colors duration-500">
           <div className="max-w-7xl mx-auto relative">
             {isEditMode && (
@@ -1778,8 +2505,14 @@ function App() {
               />
             )}
 
-            <SectionTitle align="center" subtitle="What I always deliver" isEditMode={isEditMode} onTitleEdit={() => {}} onSubtitleEdit={() => {}}>
-              Two Things
+            <SectionTitle 
+              align="center" 
+              subtitle={twoThingsSubtitle} 
+              isEditMode={isEditMode} 
+              onTitleEdit={setTwoThingsTitle} 
+              onSubtitleEdit={setTwoThingsSubtitle}
+            >
+              {twoThingsTitle}
             </SectionTitle>
 
             <div className="grid md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 mt-8 sm:mt-10 md:mt-12 lg:mt-16">
@@ -1800,47 +2533,48 @@ function App() {
 
         {/* Contact Section */}
         <section ref={contactRef} className="py-16 sm:py-20 md:py-24 lg:py-32 px-4 sm:px-6 md:px-8 lg:px-12 bg-[#EAB308] text-center">
-          <RichEditableText
+          <RichTextEditor
             value={contactTitle}
             onSave={setContactTitle}
-            tag="h2"
             isEditMode={isEditMode}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-black mb-4 sm:mb-5 px-2"
+            placeholder="Contact Title"
           />
           <RichTextEditor
             value={contactText}
             onSave={setContactText}
             isEditMode={isEditMode}
             className="text-base sm:text-lg md:text-xl text-black/80 mb-6 sm:mb-8 max-w-2xl mx-auto px-4"
+            placeholder="Contact description..."
           />
-          <RichEditableText
+          <RichTextEditor
             value={contactButton}
             onSave={setContactButton}
-            tag="span"
             isEditMode={isEditMode}
             className="group inline-flex items-center gap-2 sm:gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-5 bg-black text-white rounded-full text-sm md:text-lg font-medium"
+            placeholder="Button text"
           />
         </section>
       </main>
 
-      {/* Footer - EXACT ORIGINAL ICONS & LAYOUT */}
+      {/* Footer */}
       <footer className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 lg:px-12 bg-theme-primary border-t border-theme relative overflow-hidden transition-colors duration-500">
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 text-left">
             <div>
-              <RichEditableText
+              <RichTextEditor
                 value={footerName}
                 onSave={setFooterName}
-                tag="h4"
                 isEditMode={isEditMode}
                 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-5 md:mb-6"
+                placeholder="Your Name"
               />
-              <RichEditableText
+              <RichTextEditor
                 value={footerText}
                 onSave={setFooterText}
-                tag="p"
                 isEditMode={isEditMode}
                 className="text-sm sm:text-base text-theme-secondary opacity-60"
+                placeholder="Footer text"
               />
 
               {isEditMode && (
@@ -1869,13 +2603,12 @@ function App() {
               <h4 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 md:mb-6">Connect</h4>
               <ul className="space-y-2 sm:space-y-2.5 opacity-60 text-sm sm:text-base">
                 <li>
-                  <RichEditableText
+                  <RichTextEditor
                     value={footerEmail}
                     onSave={setFooterEmail}
-                    tag="a"
                     isEditMode={isEditMode}
                     className="hover:text-[#EAB308]"
-                    href={`mailto:${footerEmail}`}
+                    placeholder="email@example.com"
                   />
                 </li>
                 <li><a href="https://linkedin.com" target="_blank" className="hover:text-[#EAB308]">LinkedIn</a></li>
@@ -1883,12 +2616,12 @@ function App() {
               </ul>
             </div>
           </div>
-          <RichEditableText
+          <RichTextEditor
             value={copyright}
             onSave={setCopyright}
-            tag="div"
             isEditMode={isEditMode}
             className="mt-16 text-center opacity-40 text-sm"
+            placeholder="Copyright text"
           />
         </div>
         <div className="absolute bottom-0 left-0 right-0 text-center opacity-[0.03] pointer-events-none text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black whitespace-nowrap text-theme-primary">RON MEDINA • RON MEDINA • RON MEDINA</div>
@@ -1902,5 +2635,7 @@ function App() {
 export default App;
 
 
-//
-// can you help me on the when i try to change the font nothing happend can you make it like a ms word where it expand and also  when i try this and double  click some of them this is showing *Designing simplicity out of complexity. Currently crafting digital experiences that matter.*****________**************** which is not good they should work like in msword, and also can you add this to all of my project so they are editable and also when i try to  use the px then save it nothing change maybe do something about that last one don't touch my other code even 1 letter okay and don't change how it look or how it flow only change what i ask      and also why is there already a value in some of them because when i delete some then refresh it all of the thing i delete is there again
+
+//done
+
+//charlie good jib
